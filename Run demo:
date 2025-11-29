@@ -1,0 +1,40 @@
+streamlit run app/streamlit_app.py
+
+
+---
+
+## 4) `train.py`
+```python
+# train.py
+import os
+import pandas as pd
+from src.preprocessing import basic_clean
+from src.models import train_and_evaluate, save_model
+
+def main(data_path='data/train.csv', out_path='outputs/fake_news_model.joblib'):
+    os.makedirs('outputs', exist_ok=True)
+    if not os.path.exists(data_path):
+        raise FileNotFoundError(f"Training data not found at {data_path}. Place train.csv in data/")
+
+    df = pd.read_csv(data_path)
+    # Expect 'text' and 'label' columns
+    if 'text' not in df.columns or 'label' not in df.columns:
+        raise ValueError("CSV must contain 'text' and 'label' columns")
+
+    df = df.dropna(subset=['text', 'label'])
+    df['clean_text'] = df['text'].astype(str).apply(basic_clean)
+    X = df['clean_text'].values
+    y = df['label'].values
+
+    print("Training model...")
+    result = train_and_evaluate(X, y, max_features=5000, C=1.0)
+    model = result['model']
+    print("Accuracy on test:", result['accuracy'])
+    print(result['report'])
+    print("Confusion matrix:\n", result['confusion_matrix'])
+
+    saved = save_model(model, path=out_path)
+    print("Saved model to:", saved)
+
+if __name__ == "__main__":
+    main()
